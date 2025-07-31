@@ -4,9 +4,14 @@ declare module 'mammoth' {
     path?: string;
   }
 
+  export interface Message {
+    type: 'warning' | 'error' | 'info';
+    message: string;
+  }
+
   export interface ConvertResult {
     value: string;
-    messages: any[];
+    messages: Message[];
   }
 
   export function convertToHtml(options: ConvertOptions): Promise<ConvertResult>;

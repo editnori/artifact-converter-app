@@ -50,7 +50,6 @@ export function ContainerColorPicker({
   onClose,
   onApply,
   initialColors,
-  elementId,
   elementType
 }: ContainerColorPickerProps) {
   const [colors, setColors] = useState<ContainerColors>(initialColors)

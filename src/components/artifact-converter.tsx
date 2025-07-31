@@ -182,7 +182,7 @@ const PreviewPages: React.FC<PreviewPagesProps> = ({
       
       return () => observer.disconnect()
     }
-  }, [htmlContent, pageSize, margins, scale, onPagesUpdate])
+  }, [htmlContent, pageSize, margins, scale, onPagesUpdate, previewRef])
   
   return (
     <div className="bg-white shadow-lg mx-auto relative"
@@ -351,6 +351,159 @@ export default function ArtifactConverter() {
       window.customElements.define = originalDefine
     }
   }, [])
+
+  const handleElementClick = (e: Event) => {
+    e.stopPropagation()
+    
+    let element = e.currentTarget as HTMLElement
+    let elementId = element.getAttribute('data-element-id')
+    
+    // For move action, prefer the container
+    if (editAction === 'move') {
+      const container = findBestContainer(element)
+      if (container !== element) {
+        // Update element and elementId to the container
+        element = container as HTMLElement
+        // Find or create element ID for the container
+        if (!container.hasAttribute('data-element-id')) {
+          // Generate a new ID for the container
+          const newId = `container-${Date.now()}`
+          container.setAttribute('data-element-id', newId)
+          container.setAttribute('data-editable', 'true')
+          elementId = newId
+        } else {
+          elementId = container.getAttribute('data-element-id')
+        }
+      }
+    }
+    
+    if (editAction === 'edit') {
+      // Enable text editing
+      e.preventDefault()
+      
+      // Store original content
+      const originalContent = element.innerHTML
+      
+      // Make element editable
+      element.contentEditable = 'true'
+      element.focus()
+      
+      // Select all text
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      
+      // Handle save on blur or enter
+      const saveChanges = () => {
+        element.contentEditable = 'false'
+        
+        // Update the HTML content with the new text
+        const newContent = element.innerHTML
+        if (newContent !== originalContent) {
+          updateElementContent(elementId!, newContent)
+          setNotification('Text updated successfully')
+          setTimeout(() => setNotification(null), 2000)
+        }
+      }
+      
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault()
+          saveChanges()
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          element.innerHTML = originalContent
+          element.contentEditable = 'false'
+        }
+      }
+      
+      element.addEventListener('blur', saveChanges, { once: true })
+      element.addEventListener('keydown', handleKeyDown)
+      
+      // Clean up event listener when done
+      element.addEventListener('blur', () => {
+        element.removeEventListener('keydown', handleKeyDown)
+      }, { once: true })
+      
+    } else if (editAction === 'move') {
+      // Simple move mode - show up/down arrows
+      e.preventDefault()
+      
+      if (elementId) {
+        setMoveTargetElement(elementId)
+        setSelectedElements(new Set([elementId]))
+        element.classList.add('selected-for-move')
+        
+        // Show move controls near the element
+        const rect = element.getBoundingClientRect()
+        const previewRect = previewRef.current?.getBoundingClientRect()
+        if (previewRect) {
+          const relativeTop = rect.top - previewRect.top
+          const relativeLeft = rect.right - previewRect.left + 10
+          
+          setEditToolbarPosition({
+            x: relativeLeft,
+            y: relativeTop + rect.height / 2 - 40
+          })
+          setShowEditToolbar(true)
+        }
+        
+        setNotification('Use arrows to move element')
+        setTimeout(() => setNotification(null), 2000)
+      }
+    } else if (editAction === 'remove') {
+      // Original selection logic for remove mode
+      e.preventDefault()
+      
+      if (elementId) {
+        setSelectedElements(prev => {
+          const newSet = new Set(prev)
+          if (newSet.has(elementId)) {
+            newSet.delete(elementId)
+            element.classList.remove('selected-for-deletion')
+          } else {
+            newSet.add(elementId)
+            element.classList.add('selected-for-deletion')
+          }
+          
+          const action = newSet.has(elementId) ? 'Selected' : 'Deselected'
+          const tagName = element.tagName.toLowerCase()
+          setNotification(`${action} ${tagName} element`)
+          setTimeout(() => setNotification(null), 1500)
+          
+          return newSet
+        })
+      }
+    } else if (editAction === 'color') {
+      // Color picker mode
+      e.preventDefault()
+      
+      if (elementId) {
+        const tagName = element.tagName.toLowerCase()
+        
+        // Check if it's a container element (div, section, article, aside, nav, header, footer, main)
+        const containerElements = ['div', 'section', 'article', 'aside', 'nav', 'header', 'footer', 'main']
+        if (containerElements.includes(tagName)) {
+          // Get current colors
+          const computedStyle = window.getComputedStyle(element)
+          const currentColors: ContainerColors = {
+            backgroundColor: computedStyle.backgroundColor || '#ffffff',
+            borderColor: computedStyle.borderColor || '#000000',
+            textColor: computedStyle.color || '#000000'
+          }
+          
+          setContainerColors(currentColors)
+          setColorPickerElement({ id: elementId, type: tagName })
+          setShowColorPicker(true)
+        } else {
+          setNotification('Color picker is only available for container elements (div, section, etc.)')
+          setTimeout(() => setNotification(null), 3000)
+        }
+      }
+    }
+  }
 
   const updatePreview = useCallback(() => {
     if (previewRef.current) {
@@ -652,7 +805,7 @@ export default function ArtifactConverter() {
         previewRef.current.innerHTML = ''
       }
     }
-  }, [htmlContent, editMode, selectedElements, editAction])
+  }, [htmlContent, editMode, selectedElements, editAction, handleElementClick])
 
   useEffect(() => {
     updatePreview()
@@ -845,159 +998,6 @@ export default function ArtifactConverter() {
     event.target.value = ''
   }
 
-  const handleElementClick = (e: Event) => {
-    e.stopPropagation()
-    
-    let element = e.currentTarget as HTMLElement
-    let elementId = element.getAttribute('data-element-id')
-    
-    // For move action, prefer the container
-    if (editAction === 'move') {
-      const container = findBestContainer(element)
-      if (container !== element) {
-        // Update element and elementId to the container
-        element = container as HTMLElement
-        // Find or create element ID for the container
-        if (!container.hasAttribute('data-element-id')) {
-          // Generate a new ID for the container
-          const newId = `container-${Date.now()}`
-          container.setAttribute('data-element-id', newId)
-          container.setAttribute('data-editable', 'true')
-          elementId = newId
-        } else {
-          elementId = container.getAttribute('data-element-id')
-        }
-      }
-    }
-    
-    if (editAction === 'edit') {
-      // Enable text editing
-      e.preventDefault()
-      
-      // Store original content
-      const originalContent = element.innerHTML
-      
-      // Make element editable
-      element.contentEditable = 'true'
-      element.focus()
-      
-      // Select all text
-      const range = document.createRange()
-      range.selectNodeContents(element)
-      const selection = window.getSelection()
-      selection?.removeAllRanges()
-      selection?.addRange(range)
-      
-      // Handle save on blur or enter
-      const saveChanges = () => {
-        element.contentEditable = 'false'
-        
-        // Update the HTML content with the new text
-        const newContent = element.innerHTML
-        if (newContent !== originalContent) {
-          updateElementContent(elementId!, newContent)
-          setNotification('Text updated successfully')
-          setTimeout(() => setNotification(null), 2000)
-        }
-      }
-      
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault()
-          saveChanges()
-        } else if (e.key === 'Escape') {
-          e.preventDefault()
-          element.innerHTML = originalContent
-          element.contentEditable = 'false'
-        }
-      }
-      
-      element.addEventListener('blur', saveChanges, { once: true })
-      element.addEventListener('keydown', handleKeyDown)
-      
-      // Clean up event listener when done
-      element.addEventListener('blur', () => {
-        element.removeEventListener('keydown', handleKeyDown)
-      }, { once: true })
-      
-    } else if (editAction === 'move') {
-      // Simple move mode - show up/down arrows
-      e.preventDefault()
-      
-      if (elementId) {
-        setMoveTargetElement(elementId)
-        setSelectedElements(new Set([elementId]))
-        element.classList.add('selected-for-move')
-        
-        // Show move controls near the element
-        const rect = element.getBoundingClientRect()
-        const previewRect = previewRef.current?.getBoundingClientRect()
-        if (previewRect) {
-          const relativeTop = rect.top - previewRect.top
-          const relativeLeft = rect.right - previewRect.left + 10
-          
-          setEditToolbarPosition({
-            x: relativeLeft,
-            y: relativeTop + rect.height / 2 - 40
-          })
-          setShowEditToolbar(true)
-        }
-        
-        setNotification('Use arrows to move element')
-        setTimeout(() => setNotification(null), 2000)
-      }
-    } else if (editAction === 'remove') {
-      // Original selection logic for remove mode
-      e.preventDefault()
-      
-      if (elementId) {
-        setSelectedElements(prev => {
-          const newSet = new Set(prev)
-          if (newSet.has(elementId)) {
-            newSet.delete(elementId)
-            element.classList.remove('selected-for-deletion')
-          } else {
-            newSet.add(elementId)
-            element.classList.add('selected-for-deletion')
-          }
-          
-          const action = newSet.has(elementId) ? 'Selected' : 'Deselected'
-          const tagName = element.tagName.toLowerCase()
-          setNotification(`${action} ${tagName} element`)
-          setTimeout(() => setNotification(null), 1500)
-          
-          return newSet
-        })
-      }
-    } else if (editAction === 'color') {
-      // Color picker mode
-      e.preventDefault()
-      
-      if (elementId) {
-        const tagName = element.tagName.toLowerCase()
-        
-        // Check if it's a container element (div, section, article, aside, nav, header, footer, main)
-        const containerElements = ['div', 'section', 'article', 'aside', 'nav', 'header', 'footer', 'main']
-        if (containerElements.includes(tagName)) {
-          // Get current colors
-          const computedStyle = window.getComputedStyle(element)
-          const currentColors: ContainerColors = {
-            backgroundColor: computedStyle.backgroundColor || '#ffffff',
-            borderColor: computedStyle.borderColor || '#000000',
-            textColor: computedStyle.color || '#000000'
-          }
-          
-          setContainerColors(currentColors)
-          setColorPickerElement({ id: elementId, type: tagName })
-          setShowColorPicker(true)
-        } else {
-          setNotification('Color picker is only available for container elements (div, section, etc.)')
-          setTimeout(() => setNotification(null), 3000)
-        }
-      }
-    }
-  }
-
 
 
   // Helper function to find the best container element
@@ -1151,93 +1151,6 @@ export default function ArtifactConverter() {
     setHtmlContent(tempDiv.innerHTML)
   }
 
-  const swapElements = () => {
-    if (selectedElements.size !== 2) {
-      setNotification('Please select exactly 2 elements to swap their positions')
-      setTimeout(() => setNotification(null), 3000)
-      return
-    }
-    
-    // Create a new div with the current HTML content
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
-    
-    // Re-apply the same selection logic
-    const selectableElements = [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'table', 'ul', 'ol', 'blockquote', 'pre',
-      'img', 'figure', 'section', 'article', 'aside',
-      'nav', 'header', 'footer', 'main', 'div'
-    ]
-    
-    const elements = tempDiv.querySelectorAll(selectableElements.join(', '))
-    const validElements: Element[] = []
-    
-    elements.forEach((el) => {
-      if (!el.closest('[data-editable="true"]')) {
-        const textContent = el.textContent?.trim()
-        const tagName = el.tagName.toLowerCase()
-        if (textContent || tagName === 'img' || tagName === 'table') {
-          if (tagName === 'div') {
-            const hasNonDivChildren = Array.from(el.children).some(child => child.tagName.toLowerCase() !== 'div')
-            const hasDirectText = Array.from(el.childNodes).some(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
-            if (hasNonDivChildren || hasDirectText) {
-              validElements.push(el)
-            }
-          } else {
-            validElements.push(el)
-          }
-        }
-      }
-    })
-    
-    // Apply the same element IDs
-    validElements.forEach((el, index) => {
-      el.setAttribute('data-element-id', `element-${index}`)
-    })
-    
-    // Get the two selected elements
-    const selectedIds = Array.from(selectedElements)
-    const element1 = tempDiv.querySelector(`[data-element-id="${selectedIds[0]}"]`)
-    const element2 = tempDiv.querySelector(`[data-element-id="${selectedIds[1]}"]`)
-    
-    if (element1 && element2) {
-      // Clone the elements
-      const element1Clone = element1.cloneNode(true)
-      const element2Clone = element2.cloneNode(true)
-      
-      // Get parent nodes
-      const parent1 = element1.parentNode
-      const parent2 = element2.parentNode
-      
-      if (parent1 && parent2) {
-        // Insert clones in swapped positions
-        parent1.insertBefore(element2Clone, element1)
-        parent2.insertBefore(element1Clone, element2)
-        
-        // Remove originals
-        element1.remove()
-        element2.remove()
-        
-        setNotification('Successfully swapped element positions')
-      }
-    }
-    
-    // Clean up data attributes
-    const remainingElements = tempDiv.querySelectorAll('[data-editable], [data-element-id]')
-    remainingElements.forEach(el => {
-      el.removeAttribute('data-editable')
-      el.removeAttribute('data-element-id')
-      el.classList.remove('selected-for-deletion')
-    })
-    
-    // Update the HTML content
-    setHtmlContent(tempDiv.innerHTML)
-    setSelectedElements(new Set())
-    // Keep edit mode active
-    setTimeout(() => setNotification(null), 3000)
-  }
-
   const removeSelectedElements = () => {
     console.log('removeSelectedElements called with:', Array.from(selectedElements))
     
@@ -1339,19 +1252,8 @@ export default function ArtifactConverter() {
     }
     setTimeout(() => setNotification(null), 3000)
   }
-
-  interface TableCell {
-    value: string
-    backgroundColor?: string
-    color?: string
-    isHeader?: boolean
-  }
   
-  interface ExtractedTable {
-    html: string
-    data: string[][]
-    cellData: TableCell[][]
-  }
+  // Removed unused ExtractedTable interface
 
   const getPageDimensions = useCallback(() => {
     const size = pageSize === 'custom' 
@@ -1653,7 +1555,8 @@ export default function ArtifactConverter() {
       }
       setIsLoading(false)
     }
-  }, [htmlContent, orientation, pageSize, customWidth, customHeight, scale, margins, extractTables, getPageDimensions, fontSize, lineHeight, exportFormat, extractTablesFromHTML, setNotification])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [htmlContent, orientation, pageSize, customWidth, customHeight, scale, margins, extractTables, getPageDimensions, fontSize, lineHeight, exportFormat, setNotification])
 
   const convertToPNG = useCallback(async () => {
     if (!htmlContent) return
@@ -1864,7 +1767,7 @@ export default function ArtifactConverter() {
     
     setNotification(`Successfully extracted ${tables.length} table${tables.length > 1 ? 's' : ''} to Excel with formatting`)
     setTimeout(() => setNotification(null), 5000)
-  }, [htmlContent, extractTablesFromHTML, setNotification])
+  }, [htmlContent, setNotification])
 
 
 

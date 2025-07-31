@@ -58,7 +58,7 @@ export const extractTablesFromHTML = (html: string): ExtractedTable[] => {
   document.body.appendChild(tempDiv)
   
   // Force layout calculation
-  tempDiv.offsetHeight
+  void tempDiv.offsetHeight
   
   const tables = tempDiv.getElementsByTagName('table')
   const tableData: ExtractedTable[] = []
@@ -81,7 +81,7 @@ export const extractTablesFromHTML = (html: string): ExtractedTable[] => {
         
         // Get the actual computed colors
         let bgColor = computedStyle.backgroundColor
-        let textColor = computedStyle.color
+        const textColor = computedStyle.color
         
         // If the background is transparent, check parent elements
         if (bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {

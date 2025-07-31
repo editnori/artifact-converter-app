@@ -96,7 +96,7 @@ export function TableDownloader({ htmlContent, onNotification }: TableDownloader
     document.body.appendChild(tempDiv)
     
     // Force layout calculation
-    tempDiv.offsetHeight
+    void tempDiv.offsetHeight
     
     const tables = tempDiv.getElementsByTagName('table')
     const tableData: ExtractedTable[] = []
@@ -122,7 +122,7 @@ export function TableDownloader({ htmlContent, onNotification }: TableDownloader
           
           // Get the actual computed colors
           let bgColor = computedStyle.backgroundColor
-          let textColor = computedStyle.color
+          const textColor = computedStyle.color
           
           // Handle colspan and rowspan
           const colspan = parseInt(cell.getAttribute('colspan') || '1')
@@ -254,7 +254,7 @@ export function TableDownloader({ htmlContent, onNotification }: TableDownloader
       const tablesToExport = tableIndex !== undefined ? [tables[tableIndex]] : tables
       const wb = XLSX.utils.book_new()
       
-      tablesToExport.forEach((table, idx) => {
+      tablesToExport.forEach((table) => {
         const ws = XLSX.utils.aoa_to_sheet(table.data)
         
         // Apply styles based on cell data
