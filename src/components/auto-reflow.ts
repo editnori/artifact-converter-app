@@ -158,8 +158,7 @@ export const findGapsInLayout = (
 export const applyAutoReflow = (
   tempDiv: HTMLElement,
   pageHeightPx: number,
-  margins: number,
-  preserveIntentionalSpacing: boolean = true
+  margins: number
 ): { movedCount: number; details: string[] } => {
   const details: string[] = []
   let movedCount = 0
@@ -181,7 +180,6 @@ export const applyAutoReflow = (
   gaps.forEach(gap => {
     // Find elements that could potentially move up to fill this gap
     const candidateElements = elements.filter((el, index) => {
-      const elementId = el.getAttribute('data-element-id')
       const elementBounds = getElementFullBounds(el)
       
       // Element must be below the gap
@@ -199,7 +197,6 @@ export const applyAutoReflow = (
     // Try to move elements up to fill the gap
     candidateElements.forEach(element => {
       const elementBounds = getElementFullBounds(element)
-      const elementId = element.getAttribute('data-element-id') || ''
       
       // Check if element fits in the gap
       if (elementBounds.height <= gap.gapSize) {

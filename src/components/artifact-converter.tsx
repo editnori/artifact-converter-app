@@ -62,10 +62,6 @@ interface PreviewPagesProps {
   fontSize: number
   lineHeight: number
   showPageBreaks: boolean
-  editMode: boolean
-  editAction: 'remove' | 'move' | 'edit' | 'spacing' | 'color' | 'swap'
-  selectedElements: Set<string>
-  onElementClick: (e: Event) => void
   previewRef: React.RefObject<HTMLDivElement | null>
   onPagesUpdate?: (pageCount: number) => void
 }
@@ -78,10 +74,6 @@ const PreviewPages: React.FC<PreviewPagesProps> = ({
   fontSize,
   lineHeight,
   showPageBreaks,
-  editMode,
-  editAction,
-  selectedElements,
-  onElementClick,
   previewRef,
   onPagesUpdate
 }) => {
@@ -274,7 +266,7 @@ export default function ArtifactConverter() {
   const [extractTables, setExtractTables] = useState(false)
   const [copied, setCopied] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [selectedElement, setSelectedElement] = useState<string | null>(null)
+
   const [selectedElements, setSelectedElements] = useState<Set<string>>(new Set())
   const [notification, setNotification] = useState<string | null>(null)
   const [exportFormat, setExportFormat] = useState<'pdf' | 'xlsx'>('pdf')
@@ -287,7 +279,7 @@ export default function ArtifactConverter() {
   const [lineHeight, setLineHeight] = useState([1.6])
   const [previewZoom, setPreviewZoom] = useState([1.55])
   const [showPageBreaks, setShowPageBreaks] = useState(true)
-  const [pageCount, setPageCount] = useState(1)
+
   
   // Undo/Redo history
   const [history, setHistory] = useState<string[]>([])
@@ -300,7 +292,7 @@ export default function ArtifactConverter() {
   // New features
 
   const [showTableDownloader, setShowTableDownloader] = useState(false)
-  const [extractedTables, setExtractedTables] = useState<ExtractedTable[]>([])
+
   
   // Color picker state
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -315,7 +307,7 @@ export default function ArtifactConverter() {
   
   const previewRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const previewContainerRef = useRef<HTMLDivElement>(null)
+
   
   // Add to history when content changes
   const addToHistory = useCallback((content: string) => {
@@ -660,7 +652,7 @@ export default function ArtifactConverter() {
         previewRef.current.innerHTML = ''
       }
     }
-  }, [htmlContent, editMode, selectedElements, editAction])
+  }, [htmlContent, editMode, selectedElements, editAction, handleElementClick])
 
   useEffect(() => {
     updatePreview()
@@ -784,7 +776,7 @@ export default function ArtifactConverter() {
             removedCount++
           }
         })
-      } catch (e) {
+      } catch {
         // Ignore selector errors
       }
     })
@@ -884,14 +876,6 @@ export default function ArtifactConverter() {
       
       // Store original content
       const originalContent = element.innerHTML
-      const originalStyles = {
-        fontSize: window.getComputedStyle(element).fontSize,
-        fontFamily: window.getComputedStyle(element).fontFamily,
-        fontWeight: window.getComputedStyle(element).fontWeight,
-        fontStyle: window.getComputedStyle(element).fontStyle,
-        color: window.getComputedStyle(element).color,
-        textAlign: window.getComputedStyle(element).textAlign
-      }
       
       // Make element editable
       element.contentEditable = 'true'
@@ -1107,133 +1091,7 @@ export default function ArtifactConverter() {
     setTimeout(() => setNotification(null), 2000)
   }
 
-  const moveElementsInDOM = (sourceId: string, targetId: string, position: 'before' | 'after' | 'left' | 'right' | 'center' = 'after') => {
-    // Create a new div with the current HTML content
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
-    
-    // Re-apply the same selection logic to find elements
-    const selectableElements = [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'table', 'ul', 'ol', 'blockquote', 'pre',
-      'img', 'figure', 'section', 'article', 'aside',
-      'nav', 'header', 'footer', 'main', 'div'
-    ]
-    
-    const elements = tempDiv.querySelectorAll(selectableElements.join(', '))
-    const validElements: Element[] = []
-    
-    elements.forEach((el) => {
-      if (!el.closest('[data-editable="true"]')) {
-        const textContent = el.textContent?.trim()
-        const tagName = el.tagName.toLowerCase()
-        if (textContent || tagName === 'img' || tagName === 'table') {
-          if (tagName === 'div') {
-            const hasNonDivChildren = Array.from(el.children).some(child => child.tagName.toLowerCase() !== 'div')
-            const hasDirectText = Array.from(el.childNodes).some(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
-            if (hasNonDivChildren || hasDirectText) {
-              validElements.push(el)
-            }
-          } else {
-            validElements.push(el)
-          }
-        }
-      }
-    })
-    
-    // Apply element IDs
-    validElements.forEach((el, index) => {
-      el.setAttribute('data-element-id', `element-${index}`)
-    })
-    
-    // Find source and target elements
-    const sourceElement = tempDiv.querySelector(`[data-element-id="${sourceId}"]`)
-    const targetElement = tempDiv.querySelector(`[data-element-id="${targetId}"]`)
-    
-    if (sourceElement && targetElement && sourceElement.parentNode) {
-      // Remove the source element first
-      const sourceParent = sourceElement.parentNode
-      sourceElement.remove()
-      
-      // Handle different positioning
-      const targetParent = targetElement.parentNode
-      
-      if (position === 'before') {
-        // Insert before the target element
-        targetParent?.insertBefore(sourceElement, targetElement)
-      } else if (position === 'after') {
-        // Insert after the target element
-        if (targetElement.nextSibling) {
-          targetParent?.insertBefore(sourceElement, targetElement.nextSibling)
-        } else {
-          targetParent?.appendChild(sourceElement)
-        }
-      } else if (position === 'center') {
-        // Replace the target element
-        targetParent?.replaceChild(sourceElement, targetElement)
-      } else if (position === 'left' || position === 'right') {
-        // For inline positioning, create a wrapper if needed
-        const computedStyle = window.getComputedStyle(targetElement)
-        const display = computedStyle.display
-        
-        if (display.includes('inline') || targetElement.tagName.toLowerCase() === 'img') {
-          // Create a flex container
-          const wrapper = document.createElement('div')
-          wrapper.style.display = 'flex'
-          wrapper.style.alignItems = 'center'
-          wrapper.style.gap = '10px'
-          
-          if (position === 'left') {
-            wrapper.appendChild(sourceElement)
-            wrapper.appendChild(targetElement.cloneNode(true))
-          } else {
-            wrapper.appendChild(targetElement.cloneNode(true))
-            wrapper.appendChild(sourceElement)
-          }
-          
-          targetParent?.replaceChild(wrapper, targetElement)
-        } else {
-          // For block elements, treat as before/after
-          if (position === 'left') {
-            targetParent?.insertBefore(sourceElement, targetElement)
-          } else {
-            if (targetElement.nextSibling) {
-              targetParent?.insertBefore(sourceElement, targetElement.nextSibling)
-            } else {
-              targetParent?.appendChild(sourceElement)
-            }
-          }
-        }
-      }
-      
-      setNotification(`Element ${position === 'center' ? 'replaced' : `moved ${position}`} successfully`)
-    } else {
-      console.error('Could not find elements to move', { sourceId, targetId, sourceElement, targetElement })
-    }
-    
-    // Clean up data attributes and styles
-    const allElements = tempDiv.querySelectorAll('*')
-    allElements.forEach(el => {
-      el.removeAttribute('data-editable')
-      el.removeAttribute('data-element-id')
-      el.removeAttribute('draggable')
-      el.removeAttribute('data-element-box')
-      el.classList.remove('selected-for-deletion', 'dragging', 'drop-indicator', 'drop-zone-before', 'drop-zone-after', 'drop-zone-left', 'drop-zone-right', 'drop-zone-center', 'drop-preview')
-      // Remove position relative that was added for indicators
-      if ((el as HTMLElement).style.position === 'relative') {
-        (el as HTMLElement).style.position = ''
-      }
-    })
-    
-    // Remove any remaining drop indicators
-    const indicators = tempDiv.querySelectorAll('.drop-indicator')
-    indicators.forEach(el => el.remove())
-    
-    // Update the HTML content
-    setHtmlContent(tempDiv.innerHTML)
-    setSelectedElements(new Set())
-    setTimeout(() => setNotification(null), 2000)
-  }
+
 
   const updateElementContent = (elementId: string, newContent: string) => {
     // Create a new div with the current HTML content
@@ -1293,89 +1151,7 @@ export default function ArtifactConverter() {
     setHtmlContent(tempDiv.innerHTML)
   }
 
-  const swapElements = (elementId1: string, elementId2: string) => {
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
-    
-    // Re-apply the same selection logic
-    const selectableElements = [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'table', 'ul', 'ol', 'blockquote', 'pre',
-      'img', 'figure', 'section', 'article', 'aside',
-      'nav', 'header', 'footer', 'main', 'div'
-    ]
-    
-    const elements = tempDiv.querySelectorAll(selectableElements.join(', '))
-    const validElements: Element[] = []
-    
-    elements.forEach((el) => {
-      if (!el.closest('[data-editable="true"]')) {
-        const textContent = el.textContent?.trim()
-        const tagName = el.tagName.toLowerCase()
-        if (textContent || tagName === 'img' || tagName === 'table') {
-          if (tagName === 'div') {
-            const hasNonDivChildren = Array.from(el.children).some(child => child.tagName.toLowerCase() !== 'div')
-            const hasDirectText = Array.from(el.childNodes).some(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
-            if (hasNonDivChildren || hasDirectText) {
-              validElements.push(el)
-            }
-          } else {
-            validElements.push(el)
-          }
-        }
-      }
-    })
-    
-    // Apply element IDs
-    validElements.forEach((el, index) => {
-      el.setAttribute('data-element-id', `element-${index}`)
-    })
-    
-    // Find the two elements
-    const element1 = tempDiv.querySelector(`[data-element-id="${elementId1}"]`)
-    const element2 = tempDiv.querySelector(`[data-element-id="${elementId2}"]`)
-    
-    if (element1 && element2) {
-      // Clone the elements
-      const element1Clone = element1.cloneNode(true)
-      const element2Clone = element2.cloneNode(true)
-      
-      // Get parent nodes
-      const parent1 = element1.parentNode
-      const parent2 = element2.parentNode
-      
-      if (parent1 && parent2) {
-        // Insert clones in swapped positions
-        parent1.insertBefore(element2Clone, element1)
-        parent2.insertBefore(element1Clone, element2)
-        
-        // Remove originals
-        element1.remove()
-        element2.remove()
-        
-        setNotification('Elements swapped successfully')
-      }
-    }
-    
-    // Clean up
-    const allElements = tempDiv.querySelectorAll('[data-editable], [data-element-id]')
-    allElements.forEach(el => {
-      el.removeAttribute('data-editable')
-      el.removeAttribute('data-element-id')
-      el.classList.remove('selected-for-spacing', 'selected-for-deletion')
-    })
-    
-    setHtmlContent(tempDiv.innerHTML)
-    addToHistory(tempDiv.innerHTML)
-    setTimeout(() => setNotification(null), 2000)
-  }
 
-  const moveSelectedElements = () => {
-    if (selectedElements.size === 0) {
-      setNotification('No elements selected for moving')
-      setTimeout(() => setNotification(null), 2000)
-      return
-    }
     
     if (selectedElements.size !== 2) {
       setNotification('Please select exactly 2 elements to swap their positions')
@@ -2657,12 +2433,8 @@ export default function ArtifactConverter() {
                   fontSize={fontSize[0]}
                   lineHeight={lineHeight[0]}
                   showPageBreaks={showPageBreaks}
-                  editMode={editMode}
-                  editAction={editAction}
-                  selectedElements={selectedElements}
-                  onElementClick={handleElementClick}
                   previewRef={previewRef}
-                  onPagesUpdate={setPageCount}
+                  onPagesUpdate={() => {}}
                 />
               </div>
             ) : (
@@ -2738,7 +2510,8 @@ export default function ArtifactConverter() {
               </div>
             )}
 
-            {/* Table Downloader Component */}      {showTableDownloader && (
+            {/* Table Downloader Component */}
+            {showTableDownloader && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-auto border border-border">
             <div className="flex justify-between items-center mb-4">
