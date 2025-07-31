@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { X, Palette, Pipette, RotateCcw } from 'lucide-react'
+import { X, Palette, RotateCcw } from 'lucide-react'
 
 interface ContainerColorPickerProps {
   isOpen: boolean

@@ -11,7 +11,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react'
-import { ExtractedTable, TableCell } from './table-extraction'
+import { ExtractedTable } from './table-extraction'
 
 interface TableEditorProps {
   tables: ExtractedTable[]

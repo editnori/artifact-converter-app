@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
-// import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { 
   FileText, 
@@ -301,16 +300,7 @@ export default function ArtifactConverter() {
   // New features
 
   const [showTableDownloader, setShowTableDownloader] = useState(false)
-  const [showTableEditor, setShowTableEditor] = useState(false)
   const [extractedTables, setExtractedTables] = useState<ExtractedTable[]>([])
-
-  const [validationStatus, setValidationStatus] = useState<{violationCount: number; violations: any[]}>({violationCount: 0, violations: []})
-  
-  // Enhanced mode management
-  const [operationMode, setOperationMode] = useState<'select' | 'swap' | 'move' | 'group'>('select')
-  const [selectedGroup, setSelectedGroup] = useState<Set<string>>(new Set())
-  const [containerHierarchy, setContainerHierarchy] = useState<Map<string, string[]>>(new Map())
-  const [zoomLevel, setZoomLevel] = useState([100])
   
   // Color picker state
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -1888,7 +1878,7 @@ export default function ArtifactConverter() {
       }
       setIsLoading(false)
     }
-  }, [htmlContent, orientation, pageSize, customWidth, customHeight, scale, margins, extractTables, getPageDimensions, fontSize, lineHeight])
+  }, [htmlContent, orientation, pageSize, customWidth, customHeight, scale, margins, extractTables, getPageDimensions, fontSize, lineHeight, exportFormat, extractTablesFromHTML, setNotification])
 
   const convertToPNG = useCallback(async () => {
     if (!htmlContent) return
@@ -2004,7 +1994,7 @@ export default function ArtifactConverter() {
       }
       setIsLoading(false)
     }
-  }, [htmlContent, scale, getPageDimensions])
+  }, [htmlContent, scale, getPageDimensions, setNotification])
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(htmlContent)
@@ -2018,7 +2008,7 @@ export default function ArtifactConverter() {
 
 
 
-  const exportTablesToXLSX = () => {
+  const exportTablesToXLSX = useCallback(() => {
     const tables = extractTablesFromHTML(htmlContent)
     
     if (tables.length === 0) {
@@ -2099,7 +2089,7 @@ export default function ArtifactConverter() {
     
     setNotification(`Successfully extracted ${tables.length} table${tables.length > 1 ? 's' : ''} to Excel with formatting`)
     setTimeout(() => setNotification(null), 5000)
-  }
+  }, [htmlContent, extractTablesFromHTML, setNotification])
 
 
 
