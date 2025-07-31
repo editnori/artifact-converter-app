@@ -1870,8 +1870,6 @@ export default function ArtifactConverter() {
 
 
   const handleExtractTables = () => {
-    const tables = extractTablesFromHTML(htmlContent)
-    setExtractedTables(tables)
     setShowTableDownloader(true)
   }
 
