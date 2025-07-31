@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Bubblegum Light Pink Theme */
+    --background: 340 100% 99%; /* Very light pink background */
+    --foreground: 340 5% 15%; /* Dark gray with slight pink tint */
+    --card: 340 100% 99.5%; /* Almost white with pink tint */
+    --card-foreground: 340 5% 15%;
+    --popover: 340 100% 99.5%;
+    --popover-foreground: 340 5% 15%;
+    --primary: 340 82% 75%; /* Bubblegum pink */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 340 60% 85%; /* Lighter pink */
+    --secondary-foreground: 340 5% 15%;
+    --muted: 340 30% 96%; /* Very light pink gray */
+    --muted-foreground: 340 5% 40%;
+    --accent: 340 70% 80%; /* Accent pink */
+    --accent-foreground: 340 5% 15%;
+    --destructive: 0 84% 60%; /* Red for errors */
+    --destructive-foreground: 0 0% 100%;
+    --border: 340 20% 92%; /* Light pink border */
+    --input: 340 20% 94%; /* Light pink input background */
+    --ring: 340 82% 75%; /* Same as primary */
+    --radius: 1rem; /* Rounded corners */
+  }
+
+  .dark {
+    --background: 340 10% 10%;
+    --foreground: 340 5% 95%;
+    --card: 340 10% 12%;
+    --card-foreground: 340 5% 95%;
+    --popover: 340 10% 12%;
+    --popover-foreground: 340 5% 95%;
+    --primary: 340 82% 65%; /* Bubblegum pink in dark mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 340 60% 50%; /* Darker pink */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 340 10% 20%;
+    --muted-foreground: 340 5% 65%;
+    --accent: 340 70% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 340 10% 20%;
+    --input: 340 10% 20%;
+    --ring: 340 82% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Bubblegum Pink Theme Custom Styles */
+@layer utilities {
+  .bg-gradient-bubblegum {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  }
+  
+  .bg-gradient-subtle {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+  }
+  
+  .bg-gradient-pink {
+    background: linear-gradient(135deg, #ffcce3 0%, #ffa2cc 100%);
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 2px 8px 0 rgba(255, 182, 193, 0.15), 0 1px 3px 0 rgba(255, 182, 193, 0.1);
+  }
+  
+  .shadow-soft-lg {
+    box-shadow: 0 10px 25px -5px rgba(255, 182, 193, 0.2), 0 5px 10px -3px rgba(255, 182, 193, 0.15);
+  }
+  
+  .border-gradient-pink {
+    border-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent))) 1;
+  }
+  
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -8px rgba(255, 182, 193, 0.25);
+  }
+}
+
+/* Edit mode styles */
+[data-editable="true"] {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+[data-editable="true"]:hover {
+  outline: 2px dashed hsl(var(--primary));
+  outline-offset: 2px;
+  background-color: hsl(var(--primary) / 0.05);
+  border-radius: var(--radius);
+}
+
+[data-editable="true"].selected-for-deletion {
+  background-color: rgba(239, 68, 68, 0.1);
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+  position: relative;
+}
+
+[data-editable="true"].selected-for-deletion::after {
+  content: "X";
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #ef4444;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 10;
+}
+
+/* Better table styling for preview */
+.prose table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.prose table th,
+.prose table td {
+  border: 1px solid #E5E7EB;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.prose table th {
+  background-color: #F9FAFB;
+  font-weight: 600;
+  color: #374151;
+}
+
+.prose table tr:nth-child(even) {
+  background-color: #F9FAFB;
+}
+
+/* Ensure tables don't overflow */
+.prose {
+  overflow-x: auto;
+}
+
+.prose table {
+  min-width: 100%;
+  font-size: 0.875rem;
+}
+
+/* Page break indicators */
+.page-break,
+[style*="page-break-after: always"] {
+  position: relative;
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 2px dashed #cbd5e1;
+  text-align: center;
+}
+
+.page-break::before,
+[style*="page-break-after: always"]::before {
+  content: "Page Break";
+  position: absolute;
+  top: -0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 0 1rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media print {
+  .page-break,
+  [style*="page-break-after: always"] {
+    page-break-after: always;
+    border: none;
+  }
+  
+  .page-break::before,
+  [style*="page-break-after: always"]::before {
+    display: none;
+  }
+}
