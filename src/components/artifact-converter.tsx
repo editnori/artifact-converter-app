@@ -7,13 +7,11 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
+// import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { 
   FileText, 
   Image as ImageIcon, 
-  Eye,
-  EyeOff,
   Loader2,
   Upload,
   Copy,
@@ -25,15 +23,10 @@ import {
   X,
   ArrowUp,
   ArrowDown,
-  ArrowLeft,
-  ArrowRight,
   Move,
   Undo2,
   Redo2,
   Type,
-  Shield,
-  AlertCircle,
-  GripVertical,
   Palette
 } from 'lucide-react'
 import html2canvas from 'html2canvas'
@@ -41,7 +34,7 @@ import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
 
 import { TableDownloader } from './table-downloader'
-import { TableEditor } from './table-editor'
+// import { TableEditor } from './table-editor'
 import { extractTablesFromHTML } from './table-extraction'
 import { ContainerColorPicker, ContainerColors } from './container-color-picker'
 

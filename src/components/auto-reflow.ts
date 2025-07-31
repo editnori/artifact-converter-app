@@ -48,7 +48,7 @@ export const calculatePageInfo = (
   startOffset: number = 0
 ): PageInfo[] => {
   const pages: PageInfo[] = []
-  let currentPageIndex = 0
+  // let currentPageIndex = 0
   
   elements.forEach((element, index) => {
     const elementId = element.getAttribute('data-element-id') || `element-${index}`
